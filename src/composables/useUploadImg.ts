@@ -6,7 +6,7 @@ export interface UploadItem {
   file: File
   name: string
   size: number
-  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error'
+  status: 'pending' | 'uploading' | 'success' | 'error'
   progress: number
   url: string
   previewUrl: string
@@ -28,44 +28,6 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
-function compressImage(file: Blob, quality = 0.5, maxWidth = 600): Promise<Blob> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = (e) => {
-      const img = new Image()
-      img.src = e.target?.result as string
-      img.onload = () => {
-        let width = img.width
-        let height = img.height
-
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width
-          width = maxWidth
-        }
-
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext('2d')
-        ctx?.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob && blob.size < file.size) {
-              resolve(blob)
-            } else {
-              resolve(file)
-            }
-          },
-          'image/jpeg',
-          quality
-        )
-      }
-    }
-  })
-}
 
 export function useUploadImg() {
   const uploadList = ref<UploadItem[]>([])
@@ -103,24 +65,13 @@ export function useUploadImg() {
 
   async function processUpload(item: UploadItem) {
     try {
-      item.status = 'compressing'
-      let compressed = await compressImage(item.file, 0.5, 600)
-      if (compressed.size > 600 * 600) {
-        compressed = await compressImage(compressed, 0.5, 600)
-        if (compressed.size > 600 * 600) {
-          item.status = 'error'
-          item.errorMsg = '图片压缩后仍超过大小限制'
-          return
-        }
-      }
-
       item.status = 'uploading'
       const ext = item.file.type.split('/')[1] || 'jpeg'
       const fileName = `${Date.now()}${Math.ceil(Math.random() * 1000)}.${ext}`
       const url = `${UPLOAD_BASE}?fileName=${fileName}&path=${UPLOAD_PATH}&bucket=${UPLOAD_BUCKET}`
 
       const formData = new FormData()
-      formData.append('file', compressed)
+      formData.append('file', item.file)
 
       const res = await axios.put(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

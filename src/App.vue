@@ -3,7 +3,11 @@ import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, CopyDocument, Delete, Crop, Clock } from '@element-plus/icons-vue'
 import ImageCropper from './components/ImageCropper.vue'
+import LoginPage from './components/LoginPage.vue'
 import { useUploadImg } from './composables/useUploadImg'
+import { useAuth } from './composables/useAuth'
+
+const { isLoggedIn, logout } = useAuth()
 
 const {
   uploadList,
@@ -101,12 +105,18 @@ function formatTime(ts: number): string {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 py-8 px-4">
+  <LoginPage v-if="!isLoggedIn" />
+  <div v-else class="min-h-screen bg-gray-50 py-8 px-4">
     <div class="max-w-3xl mx-auto">
       <!-- Header -->
-      <div class="text-center mb-8">
+      <div class="text-center mb-8 relative">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">TagAI Image Uploader</h1>
         <p class="text-gray-500">拖拽或选择图片上传，支持批量上传</p>
+        <button
+          class="logout-btn"
+          @click="logout"
+          title="退出登录"
+        >退出</button>
       </div>
 
       <!-- Upload Area -->
@@ -183,7 +193,6 @@ function formatTime(ts: number): string {
               :stroke-width="4"
               class="mb-1"
             />
-            <div v-if="item.status === 'compressing'" class="text-xs text-blue-500">压缩中...</div>
             <div v-if="item.status === 'error'" class="text-xs text-red-500">{{ item.errorMsg }}</div>
 
             <!-- URL -->
@@ -262,3 +271,25 @@ function formatTime(ts: number): string {
     </div>
   </div>
 </template>
+
+<style scoped>
+.logout-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 5px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.logout-btn:hover {
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+</style>
